@@ -41,6 +41,7 @@ import { setupWormsManagement } from './content/worms/worms-management.js'
 import { setupWormsArena } from './content/worms/worms-arena.js'
 import { setupEduplacesSSO } from './server/routes/eduplaces-sso.js'
 import { setupGithubSSO } from './server/routes/github-sso.js'
+import { setupGTSPage } from './content/GTS_game/GTS_basic.js'
 
 /** @type {any} App will be assembled step-wise */
 const preApp = {
@@ -94,8 +95,11 @@ setupWormsArena(App)
 setupEduplacesSSO(App)
 setupGithubSSO(App)
 
+setupGTSPage(App)
+
 // keep it for now
 _deprecated__setupDecodeMe(App)
+
 
 if (process.env.UPTEST) {
   console.log(

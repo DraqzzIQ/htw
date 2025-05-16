@@ -43,7 +43,7 @@
     "sequelize": "^6.37.5"
   },
   "devDependencies": {
-    "@tsconfig/node20": "^20.1.4",
+    "@tsconfig/node20": "^20.1.5",
     "@types/connect-flash": "^0.0.40",
     "@types/cookie-parser": "^1.4.7",
     "@types/escape-html": "^1.0.4",

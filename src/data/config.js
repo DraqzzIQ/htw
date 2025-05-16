@@ -73,6 +73,10 @@ export const appConfig = {
         req.user &&
         (req.user.score >= 30 || App.config.editors.includes(req.user.name))
 
+      const GTS_Game =
+        req.user &&
+        (req.user.score >= 30 || App.config.editors.includes(req.user.name))
+
       const showEnough =
         req.user &&
         (req.user.score >= 60 || App.config.editors.includes(req.user.name))
@@ -89,6 +93,16 @@ export const appConfig = {
     ${
       showWorms
         ? '<a href="/worms" style="position:absolute;left:1280px;top:120px;" class="text-reset text-decoration-none fade-in"><div>Worms</div><img src="/worms.png" style="width:46px"></a>'
+        : ''
+    }
+    ${
+      GTS_Game
+        ? `<a href="/GTSgame" style="position:absolute;left:1000px;top:120px;" class="text-reset text-decoration-none fade-in">
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <div>GTS</div>
+              <img src="/arcade-machine.png" style="width:50px">
+            </div>
+          </a>`
         : ''
     }
      ${
