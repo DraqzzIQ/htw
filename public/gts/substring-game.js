@@ -59,8 +59,11 @@ function startGame() {
 }
 
 function nextRound() {
-    feedbackEl.textContent = '';
-    solutionEl.textContent = '';
+    setTimeout(() => {
+        feedbackEl.textContent = '';
+        feedbackEl.style.color = '';
+        solutionEl.textContent = '';
+    }, 3000);
     substring = pickSubstring();
     possibleWords = findPossibleWords(substring);
     substringEl.textContent = substring;
@@ -97,11 +100,13 @@ wordForm.onsubmit = function(e) {
     const possibleWordsLower = possibleWords.map(w => w.toLowerCase());
     if (possibleWordsLower.includes(input)) {
         feedbackEl.textContent = 'Richtig!';
+        feedbackEl.style.color = 'limegreen';
         streak++;
         updateStreak();
         nextRound();
     } else {
         feedbackEl.textContent = 'Falsch!';
+        feedbackEl.style.color = 'red';
         solutionEl.textContent = possibleWords.length ? 'Mögliche Lösung: ' + possibleWords[0] : 'Keine Lösung gefunden.';
         streak = 0;
         updateStreak();
