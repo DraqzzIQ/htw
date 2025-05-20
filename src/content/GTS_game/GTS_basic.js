@@ -20,30 +20,6 @@ export function renderNavigation(active) {
   </ul>`
 }
 
-// list of words to guess
-const WORDS = [
-  'langsamer',
-  'tisch',
-  'fenster',
-  'programmieren',
-  'entwicklung',
-  'javascript',
-  'versicherung',
-  'automobil',
-  'berater',
-  'computer',
-]
-
-/**
- * Pick a random word and substring
- */
-function getNext() {
-  const word = WORDS[Math.floor(Math.random() * WORDS.length)]
-  const start = Math.floor(Math.random() * (word.length - 3))
-  const sub = word.substring(start, start + 3)
-  return { word, sub }
-}
-
 /**
  * @param {import('../../data/types.js').App} App
  */
@@ -75,13 +51,14 @@ export function setupGTSPage(App) {
           </div>
         </div>
         <script>
-          (function() {
+         (function() {
             let currentWord = '';
             let currentSub = '';
             let timer;
             let timeLeft = 5;
             let score = 0;
-
+            let WORDS = [];
+            
             const subEl = document.getElementById('substring');
             const barEl = document.getElementById('timer-bar');
             const timerTextEl = document.getElementById('timer-text');
@@ -89,15 +66,22 @@ export function setupGTSPage(App) {
             const btnEl = document.getElementById('submit-btn');
             const feedbackEl = document.getElementById('feedback');
             const scoreEl = document.getElementById('score');
-
+          
+            function getNext() {
+              const word = WORDS[Math.floor(Math.random() * WORDS.length)];
+              const start = Math.floor(Math.random() * (word.length - 3));
+              const sub = word.substring(start, start + 3);
+              return { word, sub };
+            }
+          
             function startRound() {
-              const next = ${JSON.stringify(getNext())};
+              const next = getNext();
               currentWord = next.word;
               currentSub = next.sub;
               subEl.textContent = currentSub;
               inputEl.value = '';
               feedbackEl.textContent = '';
-              timeLeft = 5;
+              timeLeft = 10;
               timerTextEl.textContent = timeLeft + 's';
               barEl.style.width = '100%';
               timer = setInterval(updateTimer, 1000);
@@ -106,7 +90,7 @@ export function setupGTSPage(App) {
             function updateTimer() {
               timeLeft -= 1;
               timerTextEl.textContent = timeLeft + 's';
-              const pct = (timeLeft / 5) * 100;
+              const pct = (timeLeft / 10) * 100;
               barEl.style.width = pct + '%';
               if (timeLeft <= 0) {
                 clearInterval(timer);
@@ -131,7 +115,16 @@ export function setupGTSPage(App) {
             btnEl.addEventListener('click', checkGuess);
             inputEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') checkGuess(); });
 
-            startRound();
+            fetch('/gts/wordlist.txt')
+              .then(response => response.text())
+              .then(text => {
+                WORDS = text.split('\\n').map(line => line.trim()).filter(word => word.length > 0);
+                startRound();
+              })
+              .catch(err => {
+                feedbackEl.textContent = 'Error loading words.';
+                console.error(err);
+              });
           })();
         </script>
       `,
