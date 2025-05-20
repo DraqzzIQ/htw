@@ -102,12 +102,17 @@ export function setupGTSPage(App) {
             function checkGuess() {
               clearInterval(timer);
               const val = inputEl.value.trim().toLowerCase();
-              if (val === currentWord.toLowerCase()) {
+              const subLower = currentSub.toLowerCase();
+              const isValidWord = WORDS.some(word => word.toLowerCase() === val);
+              const containsSub = val.indexOf(subLower) !== -1;
+              
+              if (isValidWord && containsSub) {
                 score += 1;
                 feedbackEl.textContent = 'Richtig!';
               } else {
                 feedbackEl.textContent = 'Falsch! Richtige Antwort: ' + currentWord;
               }
+              
               scoreEl.textContent = score;
               setTimeout(startRound, 2000);
             }
