@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Substring-Spiel</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { font-family: Arial, sans-serif; background: #222; color: #eee; text-align: center; }
+        .container { margin: 40px auto; max-width: 400px; background: #333; padding: 30px; border-radius: 12px; box-shadow: 0 0 10px #111; }
+        .big { font-size: 2em; margin: 20px 0; }
+        input[type=text] { font-size: 1.2em; padding: 8px; width: 80%; border-radius: 5px; border: none; }
+        button { font-size: 1em; padding: 8px 20px; border-radius: 5px; border: none; background: #4caf50; color: #fff; cursor: pointer; }
+        .info { margin: 10px 0; }
+        .feedback { font-weight: bold; margin: 15px 0; }
+        .solution { color: #ff9800; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Substring-Spiel</h1>
+        <div class="info">Streak: <span id="streak">0</span> | Highscore: <span id="highscore">0</span></div>
+        <div class="info">Zeit: <span id="timer">30</span>s</div>
+        <div class="big" id="substring">___</div>
+        <form id="wordForm" autocomplete="off">
+            <input type="text" id="wordInput" placeholder="Wort eingeben..." autofocus />
+            <button type="submit">Prüfen</button>
+        </form>
+        <div class="feedback" id="feedback"></div>
+        <div class="solution" id="solution"></div>
+    </div>
+    <script src="substring-game.js"></script>
+</body>
+</html>
