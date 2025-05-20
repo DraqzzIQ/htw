@@ -6,7 +6,7 @@ let substring = '';
 let possibleWords = [];
 let streak = 0;
 let highscore = 0;
-let timer = 30;
+let timer = 10;
 let timerInterval = null;
 
 const streakEl = document.getElementById('streak');
@@ -42,7 +42,7 @@ function findPossibleWords(sub) {
 
 function startGame() {
     streak = 0;
-    timer = 30;
+    timer = 10;
     highscore = Number(localStorage.getItem('substringHighscore') || 0);
     highscoreEl.textContent = highscore;
     nextRound();
@@ -66,6 +66,8 @@ function nextRound() {
     substringEl.textContent = substring;
     wordInput.value = '';
     wordInput.focus();
+    timer = 10;
+    updateTimer();
 }
 
 function updateStreak() {
@@ -92,20 +94,18 @@ wordForm.onsubmit = function(e) {
     e.preventDefault();
     const input = wordInput.value.trim().toLowerCase();
     if (!input) return;
-    if (possibleWords.includes(input)) {
+    const possibleWordsLower = possibleWords.map(w => w.toLowerCase());
+    if (possibleWordsLower.includes(input)) {
         feedbackEl.textContent = 'Richtig!';
         streak++;
         updateStreak();
-        timer = Math.min(timer + 3, 30);
         nextRound();
     } else {
         feedbackEl.textContent = 'Falsch!';
         solutionEl.textContent = possibleWords.length ? 'Mögliche Lösung: ' + possibleWords[0] : 'Keine Lösung gefunden.';
         streak = 0;
         updateStreak();
-        timer = Math.max(timer - 3, 0);
-        if (timer === 0) endGame();
-        else nextRound();
+        nextRound();
     }
 };
 
