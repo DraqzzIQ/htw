@@ -97,10 +97,10 @@ export const appConfig = {
     }
     ${
       GTS_Game
-        ? `<a href="/GTSgame" style="position:absolute;left:1000px;top:120px;" class="text-reset text-decoration-none fade-in">
+        ? `<a href="/GTSgame" style="position:absolute;left:1750px;top:120px;" class="text-reset text-decoration-none fade-in">
             <div style="display: flex; flex-direction: column; align-items: center;">
               <div>GTS</div>
-              <img src="/arcade-machine.png" style="width:50px">
+              <img src="/arcade-machine.png" style="width:50px" alt="GTS game">
             </div>
           </a>`
         : ''
