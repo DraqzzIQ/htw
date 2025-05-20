@@ -40,7 +40,7 @@ const WORDS = [
 function getNext() {
   const word = WORDS[Math.floor(Math.random() * WORDS.length)]
   const start = Math.floor(Math.random() * (word.length - 3))
-  const sub = word.substring(start, 3)
+  const sub = word.substring(start, start + 3)
   return { word, sub }
 }
 
@@ -59,14 +59,14 @@ export function setupGTSPage(App) {
         ${renderNavigation(0)}
         <h1><b>G</b>uess <b>T</b>he <b>S</b>tring Game</h1>
         <br/>
-        <div class="card" style="max-width: 400px; margin: auto;">
+        <div class="card" style="max-width: 70% min-width: 300px; margin: auto;">
           <div class="card-body" id="game-container" style="text-align: center;">
             <h2 id="substring">---</h2>
-            <div class="progress" style="height: 20px; margin-bottom: 16px; position: relative;">
+            <div class="progress" style="height: 30px; margin-bottom: 20px; position: relative;">
               <div id="timer-bar" class="progress-bar bg-success" role="progressbar" style="width: 100%" aria-valuemin="0" aria-valuemax="100"></div>
-              <div style="position: absolute; width: 100%; text-align: center; line-height: 20px; font-weight: bold;">
-                <span id="timer-text">5s</span>
-              </div>
+                <div style="position: absolute; width: 100%; text-align: center; line-height: 30px; font-weight: bold;">
+                  <span id="timer-text" style="font-size: 16px;">5s</span>
+                </div>
             </div>
             <input type="text" id="guess-input" class="form-control" placeholder="Dein Wort..." autocomplete="off" />
             <button id="submit-btn" class="btn btn-primary" style="margin-top: 8px;">Raten</button>
