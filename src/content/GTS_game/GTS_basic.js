@@ -57,6 +57,7 @@ export function setupGTSPage(App) {
             let timer;
             let timeLeft = 5;
             let score = 0;
+            let highscore = 0;
             let WORDS = [];
             
             const subEl = document.getElementById('substring');
@@ -111,6 +112,11 @@ export function setupGTSPage(App) {
                 feedbackEl.textContent = 'Richtig!';
               } else {
                 feedbackEl.textContent = 'Falsch! Richtige Antwort: ' + currentWord;
+                if (score > highscore) {
+                  highscore = score;
+                  feedbackEl.textContent += ' Neuer Highscore: ' + highscore;
+                }
+                score = 0;
               }
               
               scoreEl.textContent = score;
