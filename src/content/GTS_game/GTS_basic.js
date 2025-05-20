@@ -3,7 +3,7 @@ import { renderPage } from '../../helper/render-page.js'
 
 /**
  * @param {number} active
- * @returns {string} 
+ * @returns {string}
  */
 export function renderNavigation(active) {
   return `
@@ -20,40 +20,144 @@ export function renderNavigation(active) {
   </ul>`
 }
 
+// list of words to guess
+const WORDS = [
+  'langsamer',
+  'tisch',
+  'fenster',
+  'programmieren',
+  'entwicklung',
+  'javascript',
+  'versicherung',
+  'automobil',
+  'berater',
+  'computer',
+]
+
 /**
- * @param {import("../../data/types.js").App} App
+ * Pick a random word and substring
+ */
+function getNext() {
+  const word = WORDS[Math.floor(Math.random() * WORDS.length)]
+  const start = Math.floor(Math.random() * (word.length - 3))
+  const sub = word.substring(start, 3)
+  return { word, sub }
+}
+
+/**
+ * @param {import('../../data/types.js').App} App
  */
 export function setupGTSPage(App) {
-    App.express.get('/GTSgame', safeRoute(async (req, res) => {
-        renderPage(App, req, res, {
-            page: 'GTSgame',
-            heading: 'GTS Game',
-            backButton: false,
-            content: `
-                ${renderNavigation(0)}
-                    <h1>GTS steht für: "Guess The String"</h1>
-                    <p>Viel Spaß Noa!</p>
-            `,
-        });
-    }));
+  App.express.get(
+    '/GTSgame',
+    safeRoute(async (req, res) => {
+      renderPage(App, req, res, {
+        page: 'GTSgame',
+        heading: 'GTS Game',
+        backButton: false,
+        content: `
+        ${renderNavigation(0)}
+        <h1><b>G</b>uess <b>T</b>he <b>S</b>tring Game</h1>
+        <br/>
+        <div class="card" style="max-width: 400px; margin: auto;">
+          <div class="card-body" id="game-container" style="text-align: center;">
+            <h2 id="substring">---</h2>
+            <div class="progress" style="height: 20px; margin-bottom: 16px; position: relative;">
+              <div id="timer-bar" class="progress-bar bg-success" role="progressbar" style="width: 100%" aria-valuemin="0" aria-valuemax="100"></div>
+              <div style="position: absolute; width: 100%; text-align: center; line-height: 20px; font-weight: bold;">
+                <span id="timer-text">5s</span>
+              </div>
+            </div>
+            <input type="text" id="guess-input" class="form-control" placeholder="Dein Wort..." autocomplete="off" />
+            <button id="submit-btn" class="btn btn-primary" style="margin-top: 8px;">Raten</button>
+            <p id="feedback" style="margin-top: 12px; font-weight: bold;"></p>
+            <p>Score: <span id="score">0</span></p>
+          </div>
+        </div>
+        <script>
+          (function() {
+            let currentWord = '';
+            let currentSub = '';
+            let timer;
+            let timeLeft = 5;
+            let score = 0;
 
-    App.express.get('/GTSgame/guide', safeRoute(async (req, res) => {
-        renderPage(App, req, res, {
-            page: 'GTSguide',
-            heading: 'GTS Game - Anleitung',
-            backButton: false,
-            content: `
-                ${renderNavigation(1)}
-                <div style="background-color: #34495e; padding: 20px; border-radius: 8px;">
-                <h4 style="text-align: center" >Anleitung</h4>
-                <p>Bei Guess The String (GTS) geht es darum aus einem gegebenen Teil eines Wortes, innerhalb von 10 Sekunden, ein komplettes Wort zu erraten. </p>
+            const subEl = document.getElementById('substring');
+            const barEl = document.getElementById('timer-bar');
+            const timerTextEl = document.getElementById('timer-text');
+            const inputEl = document.getElementById('guess-input');
+            const btnEl = document.getElementById('submit-btn');
+            const feedbackEl = document.getElementById('feedback');
+            const scoreEl = document.getElementById('score');
 
-                <p>Ziel ist es möglichst viele Wörter am Stück richtig zu erraten.</p>
-                <p>Beispiel:</p>
-                <p style="margin-left: 20px;">Teil des Wortes: lan <br>
-                Eine möglichkeit es zu erraten : <span style="font-weight: bold;">lan</span>gsam</p>
-                </div>            
-            `,
-        });
-    }));
+            function startRound() {
+              const next = ${JSON.stringify(getNext())};
+              currentWord = next.word;
+              currentSub = next.sub;
+              subEl.textContent = currentSub;
+              inputEl.value = '';
+              feedbackEl.textContent = '';
+              timeLeft = 5;
+              timerTextEl.textContent = timeLeft + 's';
+              barEl.style.width = '100%';
+              timer = setInterval(updateTimer, 1000);
+            }
+
+            function updateTimer() {
+              timeLeft -= 1;
+              timerTextEl.textContent = timeLeft + 's';
+              const pct = (timeLeft / 5) * 100;
+              barEl.style.width = pct + '%';
+              if (timeLeft <= 0) {
+                clearInterval(timer);
+                feedbackEl.textContent = 'Zeit abgelaufen! Richtige Antwort: ' + currentWord;
+                setTimeout(startRound, 2000);
+              }
+            }
+
+            function checkGuess() {
+              clearInterval(timer);
+              const val = inputEl.value.trim().toLowerCase();
+              if (val === currentWord.toLowerCase()) {
+                score += 1;
+                feedbackEl.textContent = 'Richtig!';
+              } else {
+                feedbackEl.textContent = 'Falsch! Richtige Antwort: ' + currentWord;
+              }
+              scoreEl.textContent = score;
+              setTimeout(startRound, 2000);
+            }
+
+            btnEl.addEventListener('click', checkGuess);
+            inputEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') checkGuess(); });
+
+            startRound();
+          })();
+        </script>
+      `,
+      })
+    })
+  )
+
+  App.express.get(
+    '/GTSgame/guide',
+    safeRoute(async (req, res) => {
+      renderPage(App, req, res, {
+        page: 'GTSguide',
+        heading: 'GTS Game - Anleitung',
+        backButton: false,
+        content: `
+          ${renderNavigation(1)}
+          <div style="background-color: #34495e; padding: 20px; border-radius: 8px;">
+            <h4 style="text-align: center">Anleitung</h4>
+            <p>Bei Guess The String (GTS) geht es darum aus einem gegebenen Teil eines Wortes, innerhalb von 10 Sekunden, ein komplettes Wort zu erraten.</p>
+            <p>Ziel ist es möglichst viele Wörter am Stück richtig zu erraten.</p>
+            <p>Beispiel:</p>
+            <p style="margin-left: 20px;">Teil des Wortes: lan <br>
+            Eine Möglichkeit es zu erraten: <span style="font-weight: bold;">lan</span>gsam</p>
+          </div>
+        `,
+      })
+    })
+  )
 }
