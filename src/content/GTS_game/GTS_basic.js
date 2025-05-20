@@ -76,6 +76,7 @@ export function setupGTSPage(App) {
             }
           
             function startRound() {
+              if (timer) clearInterval(timer);
               const next = getNext();
               currentWord = next.word;
               currentSub = next.sub;
@@ -95,13 +96,15 @@ export function setupGTSPage(App) {
               barEl.style.width = pct + '%';
               if (timeLeft <= 0) {
                 clearInterval(timer);
+                timer = null;
                 feedbackEl.textContent = 'Zeit abgelaufen! Richtige Antwort: ' + currentWord;
                 setTimeout(startRound, 2000);
               }
             }
 
             function checkGuess() {
-              clearInterval(timer);
+              if (timer) clearInterval(timer);
+              timer = null;
               const val = inputEl.value.trim().toLowerCase();
               const subLower = currentSub.toLowerCase();
               const isValidWord = WORDS.some(word => word.toLowerCase() === val);
