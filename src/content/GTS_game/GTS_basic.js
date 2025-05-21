@@ -1,5 +1,12 @@
 import { safeRoute } from '../../helper/helper.js'
 import { renderPage } from '../../helper/render-page.js'
+import fs from 'fs'
+import path from 'path'
+
+/**
+ * @type {{ [userId: string]: { word: string, substring: string, timestamp: number } }}
+ */
+let wordcache = {}
 
 /**
  * @param {number} active
@@ -167,4 +174,80 @@ export function setupGTSPage(App) {
       })
     })
   )
+
+  App.express.get(
+    '/GTSgame/getSubstring',
+    safeRoute(async (req, res) => {
+      let userId;
+      if (!req.user) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      } else {
+        userId = req.user.id;
+      }
+      const wordlistPath = path.join(process.cwd(), 'public', 'gts', 'wordlist.txt')
+      const readline = await import('readline');
+      const stream = fs.createReadStream(wordlistPath, { encoding: 'utf8' });
+      const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+
+      // Reservoir sampling to pick a random line without loading all lines into RAM
+      /** @type {string|null} */
+      let chosenWord = null;
+      let count = 0;
+      rl.on('line', (line) => {
+        const word = line.trim();
+        if (!word) return;
+        count++;
+        if (Math.floor(Math.random() * count) === 0) {
+          chosenWord = word;
+        }
+      });
+
+      rl.on('close', () => {
+        if (chosenWord) {
+          const start = Math.floor(Math.random() * (chosenWord.length - 2));
+          const chosenSubstring = chosenWord.substring(start, start + 3);
+          wordcache[String(userId)] = { word: chosenWord, substring: chosenSubstring, timestamp: Date.now() };
+          res.json({ substring: chosenSubstring });
+        } else {
+          res.status(404).json({ error: 'No words found.' });
+        }
+      });
+
+      rl.on('error', () => {
+        res.status(500).json({ error: 'Could not read wordlist.' });
+      });
+    })
+  )
+
+  App.express.get(
+    '/GTSgame/verify',
+    safeRoute(async (req, res) => {
+      let wordRaw = req.query.attempt;
+      if (Array.isArray(wordRaw)) {
+        wordRaw = wordRaw[0] || '';
+      }
+      if (typeof wordRaw !== 'string') {
+        wordRaw = '';
+      }
+      const word = wordRaw.trim().toLowerCase();
+
+      
+
+      if (!word) {
+        res.status(400).json({ valid: false, error: 'No word provided.' });
+        return;
+      }
+      const wordlistPath = path.join(process.cwd(), 'public', 'gts', 'wordlist.txt');
+      try {
+        const data = await fs.promises.readFile(wordlistPath, 'utf8');
+        const words = data.split('\n').map(w => w.trim().toLowerCase());
+        const valid = words.includes(word);
+        res.json({ valid });
+      } catch (err) {
+        res.status(500).json({ valid: false, error: 'Could not read wordlist.' });
+      }
+    })
+  )
+
 }
