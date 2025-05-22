@@ -48,7 +48,7 @@ export function setupGTSPage(App) {
             <div class="progress" style="height: 30px; margin-bottom: 20px; position: relative;">
               <div id="timer-bar" class="progress-bar bg-success" role="progressbar" style="width: 100%" aria-valuemin="0" aria-valuemax="100"></div>
                 <div style="position: absolute; width: 100%; text-align: center; line-height: 30px; font-weight: bold;">
-                  <span id="timer-text" style="font-size: 16px;">5s</span>
+                  <span id="timer-text" style="font-size: 16px;">10s</span>
                 </div>
             </div>
             <input type="text" id="guess-input" class="form-control" placeholder="Dein Wort..." autocomplete="off" />
@@ -57,15 +57,13 @@ export function setupGTSPage(App) {
             <p>Score: <span id="score">0</span></p>
           </div>
         </div>
-        <script>
+        <script type="text/javascript">
          (function() {
-            let currentWord = '';
             let currentSub = '';
             let timer;
-            let timeLeft = 5;
+            let timeLeft = 10;
             let score = 0;
             let highscore = 0;
-            let WORDS = [];
             
             const subEl = document.getElementById('substring');
             const barEl = document.getElementById('timer-bar');
@@ -75,18 +73,54 @@ export function setupGTSPage(App) {
             const feedbackEl = document.getElementById('feedback');
             const scoreEl = document.getElementById('score');
           
-            function getNext() {
-              const word = WORDS[Math.floor(Math.random() * WORDS.length)];
-              const start = Math.floor(Math.random() * (word.length - 3));
-              const sub = word.substring(start, start + 3);
-              return { word, sub };
+            function getNextSubstring() {
+              return fetch('/GTSgame/getSubstring')
+                .then(res => {
+                  if (!res.ok) {
+                    throw new Error('Failed to get substring');
+                  }
+                  return res.json();
+                })
+                .then(data => data.substring)
+                .catch(err => {
+                  console.error('Error getting substring:', err);
+                  return '---';
+                });
+            }
+
+            function getCorrectWord() {
+              return fetch('/GTSgame/getCorrectWord')
+                .then(res => {
+                  if (!res.ok) {
+                    throw new Error('Failed to get correct word');
+                  }
+                  return res.json();
+                })
+                .then(data => data.correctWord)
+                .catch(err => {
+                  console.error('Error getting correct word:', err);
+                  return '(unbekannt)';
+                });
+            }
+            
+            function verifyWord(attempt) {
+              return fetch(\`/GTSgame/verify?attempt=\${encodeURIComponent(attempt)}\`)
+                .then(res => {
+                  if (!res.ok) {
+                    throw new Error('Failed to verify word');
+                  }
+                  return res.json();
+                })
+                .then(data => data.valid)
+                .catch(err => {
+                  console.error('Error verifying word:', err);
+                  return false;
+                });
             }
           
-            function startRound() {
+            async function startRound() {
               if (timer) clearInterval(timer);
-              const next = getNext();
-              currentWord = next.word;
-              currentSub = next.sub;
+              currentSub = await getNextSubstring();
               subEl.textContent = currentSub;
               inputEl.value = '';
               feedbackEl.textContent = '';
@@ -104,48 +138,34 @@ export function setupGTSPage(App) {
               if (timeLeft <= 0) {
                 clearInterval(timer);
                 timer = null;
-                feedbackEl.textContent = 'Zeit abgelaufen! Richtige Antwort: ' + currentWord;
-                setTimeout(startRound, 2000);
+                const correctWord = getCorrectWord()
+                feedbackEl.textContent = 'Zeit abgelaufen! Richtige Antwort: ' + correctWord;
+                setTimeout(startRound, 3000);
               }
             }
 
-            function checkGuess() {
-              if (timer) clearInterval(timer);
-              timer = null;
-              const val = inputEl.value.trim().toLowerCase();
-              const subLower = currentSub.toLowerCase();
-              const isValidWord = WORDS.some(word => word.toLowerCase() === val);
-              const containsSub = val.indexOf(subLower) !== -1;
-              
-              if (isValidWord && containsSub) {
+            async function checkGuess() {
+              const attempt = inputEl.value.trim().toLowerCase();
+              const isValidWord = await verifyWord(attempt);
+            
+              if (isValidWord) {
                 score += 1;
                 feedbackEl.textContent = 'Richtig!';
               } else {
-                feedbackEl.textContent = 'Falsch! Richtige Antwort: ' + currentWord;
+                feedbackEl.textContent = 'Falsch! Versuchs nochmal.';
                 if (score > highscore) {
                   highscore = score;
                   feedbackEl.textContent += ' Neuer Highscore: ' + highscore;
                 }
-                score = 0;
               }
-              
               scoreEl.textContent = score;
-              setTimeout(startRound, 2000);
+              inputEl.value = "";
             }
 
-            btnEl.addEventListener('click', checkGuess);
-            inputEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') checkGuess(); });
-
-            fetch('/gts/wordlist.txt')
-              .then(response => response.text())
-              .then(text => {
-                WORDS = text.split('\\n').map(line => line.trim()).filter(word => word.length > 0);
-                startRound();
-              })
-              .catch(err => {
-                feedbackEl.textContent = 'Error loading words.';
-                console.error(err);
-              });
+            btnEl.addEventListener('click', () => checkGuess().then());
+            inputEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') checkGuess().then(); });
+            
+            startRound();
           })();
         </script>
       `,
