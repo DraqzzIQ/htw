@@ -205,6 +205,7 @@ export function setupGTSPage(App) {
       } else {
         userId = req.user.id;
       }
+
       const wordlistPath = path.join(process.cwd(), 'public', 'gts', 'wordlist.txt')
       const readline = await import('readline');
       const stream = fs.createReadStream(wordlistPath, { encoding: 'utf8' });
@@ -237,6 +238,13 @@ export function setupGTSPage(App) {
       rl.on('error', () => {
         res.status(500).json({ error: 'Could not read wordlist.' });
       });
+
+      const now = Date.now();
+      for (const [uid, entry] of Object.entries(wordcache)) {
+        if (now - entry.timestamp > 20000) {
+          delete wordcache[uid];
+        }
+      }
     })
   )
 
@@ -251,13 +259,11 @@ export function setupGTSPage(App) {
         wordRaw = '';
       }
       const word = wordRaw.trim().toLowerCase();
-
-      
-
       if (!word) {
         res.status(400).json({ valid: false, error: 'No word provided.' });
         return;
       }
+
       const wordlistPath = path.join(process.cwd(), 'public', 'gts', 'wordlist.txt');
       try {
         const data = await fs.promises.readFile(wordlistPath, 'utf8');
@@ -266,6 +272,32 @@ export function setupGTSPage(App) {
         res.json({ valid });
       } catch (err) {
         res.status(500).json({ valid: false, error: 'Could not read wordlist.' });
+      }
+    })
+  )
+
+  App.express.get(
+    '/GTSgame/getCorrectWord',
+    safeRoute(async (req, res) => {
+      let userId;
+      if (!req.user) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      } else {
+        userId = req.user.id;
+      }
+
+      const cache = wordcache[String(userId)];
+      if (!cache) {
+        res.status(404).json({ error: 'No word found for user.' });
+        return;
+      }
+
+      const now = Date.now();
+      if (now - cache.timestamp > 10000) {
+        res.json({ correctWord: cache.word });
+      } else {
+        res.status(400).json({ error: 'Round still active.' });
       }
     })
   )
