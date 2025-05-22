@@ -138,9 +138,10 @@ export function setupGTSPage(App) {
               if (timeLeft <= 0) {
                 clearInterval(timer);
                 timer = null;
-                const correctWord = getCorrectWord()
-                feedbackEl.textContent = 'Zeit abgelaufen! Richtige Antwort: ' + correctWord;
-                setTimeout(startRound, 3000);
+                getCorrectWord().then(correctWord => {
+                  feedbackEl.textContent = 'Zeit abgelaufen! Richtige Antwort: ' + correctWord;
+                  setTimeout(startRound, 3000);
+                });
               }
             }
 
@@ -198,51 +199,63 @@ export function setupGTSPage(App) {
   App.express.get(
     '/GTSgame/getSubstring',
     safeRoute(async (req, res) => {
-      let userId;
+      let userId
       if (!req.user) {
-        res.status(401).json({ error: 'Unauthorized' });
-        return;
+        res.status(401).json({ error: 'Unauthorized' })
+        return
       } else {
-        userId = req.user.id;
+        userId = req.user.id
       }
 
-      const wordlistPath = path.join(process.cwd(), 'public', 'gts', 'wordlist.txt')
-      const readline = await import('readline');
-      const stream = fs.createReadStream(wordlistPath, { encoding: 'utf8' });
-      const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+      const wordlistPath = path.join(
+        process.cwd(),
+        'public',
+        'gts',
+        'wordlist.txt'
+      )
+      const readline = await import('readline')
+      const stream = fs.createReadStream(wordlistPath, { encoding: 'utf8' })
+      const rl = readline.createInterface({
+        input: stream,
+        crlfDelay: Infinity,
+      })
 
       // Reservoir sampling to pick a random line without loading all lines into RAM
       /** @type {string|null} */
-      let chosenWord = null;
-      let count = 0;
+      let chosenWord = null
+      let count = 0
       rl.on('line', (line) => {
-        const word = line.trim();
-        if (!word) return;
-        count++;
+        const word = line.trim()
+        if (!word) return
+        count++
         if (Math.floor(Math.random() * count) === 0) {
-          chosenWord = word;
+          chosenWord = word
         }
-      });
+      })
 
       rl.on('close', () => {
         if (chosenWord) {
-          const start = Math.floor(Math.random() * (chosenWord.length - 2));
-          const chosenSubstring = chosenWord.substring(start, start + 3);
-          wordcache[String(userId)] = { word: chosenWord, substring: chosenSubstring, timestamp: Date.now() };
-          res.json({ substring: chosenSubstring });
+          const start = Math.floor(Math.random() * (chosenWord.length - 2))
+          const chosenSubstring = chosenWord.substring(start, start + 3)
+          wordcache[String(userId)] = {
+            word: chosenWord,
+            substring: chosenSubstring,
+            timestamp: Date.now(),
+          }
+          res.json({ substring: chosenSubstring })
         } else {
-          res.status(404).json({ error: 'No words found.' });
+          res.status(404).json({ error: 'No words found.' })
         }
-      });
+      })
 
       rl.on('error', () => {
-        res.status(500).json({ error: 'Could not read wordlist.' });
-      });
+        res.status(500).json({ error: 'Could not read wordlist.' })
+      })
 
-      const now = Date.now();
+      const now = Date.now()
       for (const [uid, entry] of Object.entries(wordcache)) {
         if (now - entry.timestamp > 20000) {
-          delete wordcache[uid];
+          delete wordcache[uid]
         }
       }
     })
@@ -251,27 +264,34 @@ export function setupGTSPage(App) {
   App.express.get(
     '/GTSgame/verify',
     safeRoute(async (req, res) => {
-      let wordRaw = req.query.attempt;
+      let wordRaw = req.query.attempt
       if (Array.isArray(wordRaw)) {
-        wordRaw = wordRaw[0] || '';
+        wordRaw = wordRaw[0] || ''
       }
       if (typeof wordRaw !== 'string') {
-        wordRaw = '';
+        wordRaw = ''
       }
-      const word = wordRaw.trim().toLowerCase();
+      const word = wordRaw.trim().toLowerCase()
       if (!word) {
-        res.status(400).json({ valid: false, error: 'No word provided.' });
-        return;
+        res.status(400).json({ valid: false, error: 'No word provided.' })
+        return
       }
 
-      const wordlistPath = path.join(process.cwd(), 'public', 'gts', 'wordlist.txt');
+      const wordlistPath = path.join(
+        process.cwd(),
+        'public',
+        'gts',
+        'wordlist.txt'
+      )
       try {
-        const data = await fs.promises.readFile(wordlistPath, 'utf8');
-        const words = data.split('\n').map(w => w.trim().toLowerCase());
-        const valid = words.includes(word);
-        res.json({ valid });
+        const data = await fs.promises.readFile(wordlistPath, 'utf8')
+        const words = data.split('\n').map((w) => w.trim().toLowerCase())
+        const valid = words.includes(word)
+        res.json({ valid })
       } catch (err) {
-        res.status(500).json({ valid: false, error: 'Could not read wordlist.' });
+        res
+          .status(500)
+          .json({ valid: false, error: 'Could not read wordlist.' })
       }
     })
   )
@@ -279,27 +299,26 @@ export function setupGTSPage(App) {
   App.express.get(
     '/GTSgame/getCorrectWord',
     safeRoute(async (req, res) => {
-      let userId;
+      let userId
       if (!req.user) {
-        res.status(401).json({ error: 'Unauthorized' });
-        return;
+        res.status(401).json({ error: 'Unauthorized' })
+        return
       } else {
-        userId = req.user.id;
+        userId = req.user.id
       }
 
-      const cache = wordcache[String(userId)];
+      const cache = wordcache[String(userId)]
       if (!cache) {
-        res.status(404).json({ error: 'No word found for user.' });
-        return;
+        res.status(404).json({ error: 'No word found for user.' })
+        return
       }
 
-      const now = Date.now();
+      const now = Date.now()
       if (now - cache.timestamp > 10000) {
-        res.json({ correctWord: cache.word });
+        res.json({ correctWord: cache.word })
       } else {
-        res.status(400).json({ error: 'Round still active.' });
+        res.status(400).json({ error: 'Round still active.' })
       }
     })
   )
-
 }
