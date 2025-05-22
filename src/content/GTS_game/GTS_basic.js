@@ -123,7 +123,7 @@ export function setupGTSPage(App) {
               currentSub = await getNextSubstring();
               subEl.textContent = currentSub;
               inputEl.value = '';
-              feedbackEl.textContent = '';
+              // feedbackEl.textContent = '';
               timeLeft = 10;
               timerTextEl.textContent = timeLeft + 's';
               barEl.style.width = '100%';
@@ -140,6 +140,7 @@ export function setupGTSPage(App) {
                 timer = null;
                 getCorrectWord().then(correctWord => {
                   feedbackEl.textContent = 'Zeit abgelaufen! Richtige Antwort: ' + correctWord;
+                  score = 0;
                   setTimeout(startRound, 3000);
                 });
               }
@@ -150,14 +151,17 @@ export function setupGTSPage(App) {
               const isValidWord = await verifyWord(attempt);
             
               if (isValidWord) {
+                clearInterval(timer);
+                timer = null;
                 score += 1;
                 feedbackEl.textContent = 'Richtig!';
-              } else {
-                feedbackEl.textContent = 'Falsch! Versuchs nochmal.';
                 if (score > highscore) {
                   highscore = score;
                   feedbackEl.textContent += ' Neuer Highscore: ' + highscore;
                 }
+                setTimeout(startRound, 0);     
+              } else {
+                feedbackEl.textContent = 'Falsch! Versuchs nochmal.';
               }
               scoreEl.textContent = score;
               inputEl.value = "";
