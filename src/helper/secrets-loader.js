@@ -1,4 +1,4 @@
-import { secretValues as secretValues_ } from '../../secrets.js'
+import { secretValues as secretValues_ } from '../../secrets.placeholder.js'
 import { secretValues as secretValuesPlaceholders_ } from '../../secrets.placeholder.js'
 
 /** @type {{[key: string]: string}} */

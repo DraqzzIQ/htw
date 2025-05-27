@@ -4,7 +4,7 @@ import fs from 'fs'
 import path from 'path'
 
 /**
- * @type {{ [userId: string]: { word: string, substring: string, timestamp: number } }}
+ * @type {{ [userId: string]: { word: string, substring: string, timestamp: number, maxtime: number }}}
  */
 let wordcache = {}
 
@@ -61,7 +61,7 @@ export function setupGTSPage(App) {
          (function() {
             let currentSub = '';
             let timer;
-            let timeLeft = 10;
+            let timeLeft = 0;
             let score = 0;
             let highscore = 0;
             
@@ -81,7 +81,7 @@ export function setupGTSPage(App) {
                   }
                   return res.json();
                 })
-                .then(data => data.substring)
+                .then(data => [data.substring, data.maxtime])
                 .catch(err => {
                   console.error('Error getting substring:', err);
                   return '---';
@@ -120,30 +120,30 @@ export function setupGTSPage(App) {
           
             async function startRound() {
               if (timer) clearInterval(timer);
-              currentSub = await getNextSubstring();
+              [currentSub, currentMaxTime] = await getNextSubstring();
               subEl.textContent = currentSub;
               inputEl.value = '';
-              // feedbackEl.textContent = '';
-              timeLeft = 10;
+              timeLeft = currentMaxTime;
               timerTextEl.textContent = timeLeft + 's';
               barEl.style.width = '100%';
-              timer = setInterval(updateTimer, 1000);
+              timer = setInterval(updateTimer, 990);
             }
 
             function updateTimer() {
-              timeLeft -= 1;
-              timerTextEl.textContent = timeLeft + 's';
-              const pct = (timeLeft / 10) * 100;
-              barEl.style.width = pct + '%';
-              if (timeLeft <= 0) {
+              if (timeLeft == 0) {
                 clearInterval(timer);
                 timer = null;
                 getCorrectWord().then(correctWord => {
                   feedbackEl.textContent = 'Zeit abgelaufen! Richtige Antwort: ' + correctWord;
                   score = 0;
-                  setTimeout(startRound, 3000);
+                  setTimeout(startRound, 0);
                 });
+                return;
               }
+              timeLeft -= 1;
+              timerTextEl.textContent = timeLeft + 's';
+              const pct = (timeLeft / 10) * 100;
+              barEl.style.width = pct + '%';
             }
 
             async function checkGuess() {
@@ -245,8 +245,9 @@ export function setupGTSPage(App) {
             word: chosenWord,
             substring: chosenSubstring,
             timestamp: Date.now(),
+            maxtime: 10,
           }
-          res.json({ substring: chosenSubstring })
+          res.json({ substring: chosenSubstring, maxtime: 10 })
         } else {
           res.status(404).json({ error: 'No words found.' })
         }
@@ -258,7 +259,7 @@ export function setupGTSPage(App) {
 
       const now = Date.now()
       for (const [uid, entry] of Object.entries(wordcache)) {
-        if (now - entry.timestamp > 20000) {
+        if (now - entry.timestamp > 60000) {
           delete wordcache[uid]
         }
       }
@@ -268,6 +269,14 @@ export function setupGTSPage(App) {
   App.express.get(
     '/GTSgame/verify',
     safeRoute(async (req, res) => {
+      let userId
+      if (!req.user) {
+        res.status(401).json({ error: 'Unauthorized' })
+        return
+      } else {
+        userId = req.user.id
+      }
+
       let wordRaw = req.query.attempt
       if (Array.isArray(wordRaw)) {
         wordRaw = wordRaw[0] || ''
@@ -278,6 +287,22 @@ export function setupGTSPage(App) {
       const word = wordRaw.trim().toLowerCase()
       if (!word) {
         res.status(400).json({ valid: false, error: 'No word provided.' })
+        return
+      }
+
+      const cache = wordcache[String(userId)]
+      if (!cache) {
+        res.status(404).json({ error: 'No word found for user.' })
+        return
+      }
+
+      if (!word.includes(cache.substring)) {
+        res.json({ valid: false })
+        return;
+      }
+
+      if (Date.now() - cache.timestamp > cache.maxtime * 1000) {
+        res.status(404).json({ error: 'took too long' })
         return
       }
 
@@ -318,7 +343,7 @@ export function setupGTSPage(App) {
       }
 
       const now = Date.now()
-      if (now - cache.timestamp > 10000) {
+      if (now - cache.timestamp > cache.maxtime) {
         res.json({ correctWord: cache.word })
       } else {
         res.status(400).json({ error: 'Round still active.' })
